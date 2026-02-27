@@ -1,0 +1,65 @@
+# SAMI Weekly Reports - Docker Compose Configuration
+# Для локальної розробки та production deployment
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # Main Application
+  # ===========================================
+  sami-reports:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sami-reports
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      # Збереження даних бази даних
+      - sami-data:/app/data
+      # Збереження логів
+      - sami-logs:/app/logs
+      # Тимчасові файли (PDF)
+      - sami-temp:/app/temp
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=/app/data/database.sqlite
+      - LOG_PATH=/app/logs
+      - PDF_TEMP_PATH=/app/temp
+    networks:
+      - sami-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+# ===========================================
+# Networks
+# ===========================================
+networks:
+  sami-network:
+    driver: bridge
+
+# ===========================================
+# Volumes
+# ===========================================
+volumes:
+  sami-data:
+    driver: local
+  sami-logs:
+    driver: local
+  sami-temp:
+    driver: local
